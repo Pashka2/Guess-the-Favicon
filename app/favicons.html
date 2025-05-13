@@ -1,0 +1,11 @@
+<h1>Pick a favicon to guess!</h1>
+<div style="display: flex; flex-wrap: wrap;">
+  {% for outlet in outlets %}
+    <div style="margin: 10px; text-align: center;">
+      <a href="{{ url_for('main.guess', outlet_id=outlet.id) }}">
+        <img src="{{ outlet.favicon_url }}" alt="Favicon" width="32" height="32"><br>
+        <small>ID: {{ outlet.id }}</small>
+      </a>
+    </div>
+  {% endfor %}
+</div>

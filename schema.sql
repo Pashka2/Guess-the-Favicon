@@ -46,3 +46,13 @@ CREATE TABLE submissions (
     status TEXT DEFAULT 'pending',
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE wrong_guesses (
+    id SERIAL PRIMARY KEY,
+    outlet_id INTEGER REFERENCES outlets(id) ON DELETE CASCADE,
+    guessed_name TEXT,
+    guessed_bias INTEGER,
+    guessed_establishment INTEGER,
+    count INTEGER DEFAULT 1,
+    UNIQUE (outlet_id, guessed_name, guessed_bias, guessed_establishment)
+);
