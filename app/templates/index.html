@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Guess the Favicon</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin: 2rem;
+        }
+        .favicon-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .favicon-card {
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 10px;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .favicon-card:hover {
+            transform: scale(1.1);
+            cursor: pointer;
+        }
+        .favicon-card img {
+            max-width: 48px;
+            max-height: 48px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧠 Guess the Favicon</h1>
+    <p>Click a favicon to begin guessing.</p>
+    <div class="favicon-grid">
+        {% for outlet in outlets %}
+        <a href="{{ url_for('main.guess', outlet_id=outlet.id) }}" class="favicon-card">
+            <img src="{{ url_for('static', filename='favicons/' + outlet.favicon_url) }}" alt="Favicon">
+        </a>
+        {% endfor %}
+    </div>
+</body>
+</html>

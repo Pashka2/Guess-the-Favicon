@@ -1,26 +1,29 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, redirect, url_for, make_response, flash
 from sqlalchemy import text
 from app import db 
-from flask import request, redirect, url_for, make_response
-import json
-from flask import flash
+#import json
+
+
+
 
 MAX_ATTEMPTS = 5
 
-def get_guess_attempts():
-    cookie = request.cookies.get('guess_attempts')
-    if cookie:
-        return json.loads(cookie)
-    return {}
+#def get_guess_attempts():
+ #   cookie = request.cookies.get('guess_attempts')
+ #   if cookie:
+ #       return json.loads(cookie)
+ #   return {}
 
-def save_guess_attempts(response, attempts_dict):
-    response.set_cookie('guess_attempts', json.dumps(attempts_dict), max_age=60*60*24*30)  # 30 days
+#def save_guess_attempts(response, attempts_dict):
+#    response.set_cookie('guess_attempts', json.dumps(attempts_dict), max_age=60*60*24*30)  # 30 days
 
 main = Blueprint('main', __name__)
 
 @main.route('/')
 def index():
-    return "<h1>Welcome to Guess the Favicon!</h1><p>The game is under construction.</p>"
+    from app.models import Outlet  # ensure this import is valid
+    outlets = Outlet.query.all()
+    return render_template("index.html", outlets=outlets)
 
 
 def log_wrong_guess(outlet_id, guessed_name, guessed_bias, guessed_establishment):
@@ -42,6 +45,7 @@ def log_wrong_guess(outlet_id, guessed_name, guessed_bias, guessed_establishment
 
 @main.route('/guess/<int:outlet_id>', methods=['GET', 'POST'])
 def guess(outlet_id):
+    MAX_ATTEMPTS = 5
     guess_attempts = get_guess_attempts()
     remaining = guess_attempts.get(str(outlet_id), MAX_ATTEMPTS)
 
@@ -60,7 +64,7 @@ def guess(outlet_id):
             return render_template("guess.html", remaining_guesses=remaining, message=message, outlet_id=outlet_id)
 
         correct_outlet = db.session.execute(
-            text("SELECT name, bias, establishment FROM outlets WHERE id = :id"),
+            text("SELECT name, bias, establishment, favicon_url FROM outlets WHERE id = :id"),
             {"id": outlet_id}
         ).fetchone()
 
@@ -72,27 +76,44 @@ def guess(outlet_id):
             and guessed_bias == correct_outlet.bias
             and guessed_establishment == correct_outlet.establishment
         ):
-            message = "Correct!"
+            message = "✅ Correct!"
         else:
             log_wrong_guess(outlet_id, guessed_name, guessed_bias, guessed_establishment)
             remaining -= 1
             guess_attempts[str(outlet_id)] = remaining
-            message = f"Wrong guess. Remaining attempts: {remaining}"
+            message = f"❌ Wrong guess. Remaining attempts: {remaining}"
 
         resp = make_response(render_template(
             "guess.html",
             remaining_guesses=remaining,
             message=message,
-            outlet_id=outlet_id
+            outlet_id=outlet_id,
+            favicon_url=correct_outlet.favicon_url,
+            outlet_name=correct_outlet.name
         ))
         save_guess_attempts(resp, guess_attempts)
         return resp
 
-    return render_template("guess.html", remaining_guesses=remaining, outlet_id=outlet_id)
+    # GET request - load favicon
+    correct_outlet = db.session.execute(
+        text("SELECT name, favicon_url FROM outlets WHERE id = :id"),
+        {"id": outlet_id}
+    ).fetchone()
 
-@main.route('/favicons')
+    if not correct_outlet:
+        return "Outlet not found", 404
+
+    return render_template("guess.html",
+        remaining_guesses=remaining,
+        outlet_id=outlet_id,
+        favicon_url=correct_outlet.favicon_url,
+        outlet_name=correct_outlet.name
+    )
+
+@main.route("/favicons")
 def favicons():
-    outlets = db.session.execute(text("SELECT id, name, favicon_url FROM outlets")).fetchall()
+    from app.models import Outlet  # Make sure this import exists if needed
+    outlets = Outlet.query.all()
     return render_template("favicons.html", outlets=outlets)
 
 

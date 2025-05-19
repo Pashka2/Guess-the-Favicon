@@ -24,6 +24,11 @@
 
     <p>You have {{ remaining_guesses }} guesses remaining.</p>
 
+
+    {% if favicon_url %}
+        <img src="{{ favicon_url }}" alt="Outlet Favicon" style="height: 64px;">
+    {% endif %}
+
     <form method="POST">
         <!-- Hidden outlet_id -->
         <input type="hidden" name="outlet_id" value="{{ outlet_id }}">
