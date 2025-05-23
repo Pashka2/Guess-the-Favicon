@@ -26,7 +26,7 @@
 
 
     {% if favicon_url %}
-        <img src="{{ favicon_url }}" alt="Outlet Favicon" style="height: 64px;">
+        <img src="{{ url_for('static', filename='favicons/' ~ favicon_url) }}" alt="Outlet Favicon" style="height: 64px;">
     {% endif %}
 
     <form method="POST">
@@ -54,6 +54,6 @@
     </form>
 
     <p><a href="{{ url_for('main.reset_guesses', outlet_id=outlet_id) }}">Reset guesses for this favicon</a></p>
-    <p><a href="{{ url_for('main.favicons') }}">Back to favicon menu</a></p>
+    <p><a href="{{ url_for('main.index') }}">Back to favicon menu</a></p>
 </body>
 </html>

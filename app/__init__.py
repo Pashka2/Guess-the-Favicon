@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from config import Config
 
-
 db = SQLAlchemy()
 migrate = Migrate()
 
@@ -15,8 +14,9 @@ def create_app():
     migrate.init_app(app, db)
 
     from app.routes import main as main_blueprint
-    app.register_blueprint(main_blueprint)
+    from app.auth import auth as auth_blueprint  # ✅ Moved inside the function
 
-    from app.models import Outlet
+    app.register_blueprint(main_blueprint)
+    app.register_blueprint(auth_blueprint)
 
     return app

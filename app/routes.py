@@ -1,6 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, make_response, flash
+from flask import Blueprint, render_template, redirect, url_for, make_response, flash, request, session
 from sqlalchemy import text
 from app import db 
+from app.utils import get_guess_attempts, save_guess_attempts
+
 #import json
 
 
@@ -21,7 +23,10 @@ main = Blueprint('main', __name__)
 
 @main.route('/')
 def index():
-    from app.models import Outlet  # ensure this import is valid
+    if 'user_id' not in session:
+        return redirect(url_for('auth.welcome'))  # Send to welcome screen if not logged in
+
+    from app.models import Outlet
     outlets = Outlet.query.all()
     return render_template("index.html", outlets=outlets)
 
@@ -96,7 +101,7 @@ def guess(outlet_id):
 
     # GET request - load favicon
     correct_outlet = db.session.execute(
-        text("SELECT name, favicon_url FROM outlets WHERE id = :id"),
+        text("SELECT name, favicon_url FROM outlet WHERE id = :id"),
         {"id": outlet_id}
     ).fetchone()
 
@@ -154,3 +159,5 @@ def submit_article():
         return resp
 
     return redirect(request.referrer or url_for('main.favicons'))
+
+    

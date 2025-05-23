@@ -46,5 +46,19 @@
         </a>
         {% endfor %}
     </div>
+    <footer>
+    <a href="{{ url_for('auth.logout') }}" style="
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #f44336;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        z-index: 1000;
+    ">Logout</a> 
+</footer>
 </body>
 </html>
