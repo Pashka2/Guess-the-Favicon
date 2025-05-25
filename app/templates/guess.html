@@ -55,8 +55,7 @@
         <img src="{{ url_for('static', filename='favicons/' ~ favicon_url) }}" alt="Outlet Favicon" style="height: 64px;">
     {% endif %}
 
-    {% set all_locked = locked.name and locked.bias and locked.establishment %}
-    {% if not all_locked and remaining_guesses > 0 %}
+    {% if remaining_guesses > 0 %}
     <form method="POST">
         <input type="hidden" name="outlet_id" value="{{ outlet_id }}">
         
@@ -85,9 +84,10 @@
     {% endif %}
 
     <hr>
-    <h3>Out of attempts?</h3>
+    <h3>Out of attempts? Give us a story to cover to earn your guesses back.</h3>
     <p>Submit a unique article URL to earn more guesses:</p>
     <form method="POST" action="{{ url_for('main.submit_article') }}">
+       <input type="hidden" name="outlet_id" value="{{ outlet_id }}">
         <input type="url" name="url" placeholder="https://example.com/article" required>
         <br><br>
         <button type="submit">Submit Article</button>
@@ -96,10 +96,23 @@
     <br>
     <p>
   <a href="{{ url_for('main.reset_guesses', outlet_id=outlet_id) }}"
-     onclick="return confirm('Resetting will cost 1 point. Are you sure?')">
+     onclick="return confirmReset();" title="This will reset your progress for this outlet and deduct points">
      Reset guesses for this favicon
   </a>
 </p>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    window.confirmReset = function () {
+      const points = {{ reset_cost | default(0) }};
+      return confirm(`Resetting will cost ${points} point${points === 1 ? '' : 's'}. Are you sure?`);
+    };
+  });
+</script>
+
+
+
 
     <p><a href="{{ url_for('main.index') }}">Back to favicon menu</a></p>
 </body>

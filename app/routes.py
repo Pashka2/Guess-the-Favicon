@@ -55,15 +55,11 @@ def log_wrong_guess(outlet_id, guessed_name, guessed_bias, guessed_establishment
 @login_required
 def guess(outlet_id):
     user_id = current_user.id
-
-    user_id = current_user.id
     MAX_ATTEMPTS = 5
     guess_attempts = get_guess_attempts()
     remaining = guess_attempts.get(str(outlet_id), MAX_ATTEMPTS)
 
-    if remaining <= 0:
-        return "<h2>No attempts left. Submit an article to earn more!</h2>"
-
+    # ✅ Always fetch correct outlet early
     correct_outlet = db.session.execute(
         text("""
             SELECT id, name, bias, establishment, favicon_url 
@@ -74,7 +70,7 @@ def guess(outlet_id):
     if not correct_outlet:
         return "Outlet not found", 404
 
-    # Load progress if any
+    # ✅ Fetch or create progress row
     progress = db.session.execute(
         text("""
             SELECT * FROM user_outlet_progress 
@@ -95,6 +91,7 @@ def guess(outlet_id):
             """), {"user_id": user_id, "outlet_id": outlet_id}
         ).fetchone()
 
+    # ✅ Default lock/checkmark state
     locked = {
         'name': progress.guessed_name_correct,
         'bias': progress.guessed_bias_correct,
@@ -102,41 +99,62 @@ def guess(outlet_id):
     }
 
     checkmarks = {
-        'name': False,
-        'bias': False,
-        'establishment': False
+        'name': progress.guessed_name_correct,
+        'bias': progress.guessed_bias_correct,
+        'establishment': progress.guessed_establishment_correct
     }
 
-    message = None
+    # ✅ Calculate reset cost for this outlet
+    reset_cost = 0
+    if locked['name']:
+        reset_cost += 3
+    if locked['bias']:
+        reset_cost += 2
+    if locked['establishment']:
+        reset_cost += 2
+    if locked['name'] and locked['bias'] and locked['establishment']:
+        reset_cost += 3
 
+    # ✅ If out of guesses, show locked screen but with outlet info
+    if remaining <= 0:
+        return render_template(
+            "guess.html",
+            remaining_guesses=0,
+            message="❌ No attempts left. Submit an article to earn more!",
+            outlet_id=outlet_id,
+            favicon_url=correct_outlet.favicon_url,
+            outlet_name=correct_outlet.name,
+            locked=locked,
+            checkmarks=checkmarks,
+            reset_cost=reset_cost
+        )
+
+    # ✅ Handle guess submission
     if request.method == 'POST':
         guessed_name = request.form.get('guessed_name')
         guessed_bias = request.form.get('guessed_bias')
         guessed_establishment = request.form.get('guessed_establishment')
 
-        points_awarded = 0
         update_fields = []
+        points_awarded = 0
 
         if not locked['name'] and guessed_name:
             if guessed_name.strip().lower() == correct_outlet.name.strip().lower():
-                points_awarded += 3
                 update_fields.append("guessed_name_correct = TRUE")
-                locked['name'] = True
                 checkmarks['name'] = True
+                points_awarded += 3
 
         if not locked['bias'] and guessed_bias:
             if int(guessed_bias) == correct_outlet.bias:
-                points_awarded += 2
                 update_fields.append("guessed_bias_correct = TRUE")
-                locked['bias'] = True
                 checkmarks['bias'] = True
+                points_awarded += 2
 
         if not locked['establishment'] and guessed_establishment:
             if int(guessed_establishment) == correct_outlet.establishment:
-                points_awarded += 2
                 update_fields.append("guessed_establishment_correct = TRUE")
-                locked['establishment'] = True
                 checkmarks['establishment'] = True
+                points_awarded += 2
 
         if (not progress.guessed_name_correct and not progress.guessed_bias_correct and
             not progress.guessed_establishment_correct and
@@ -158,12 +176,14 @@ def guess(outlet_id):
             db.session.commit()
             message = f"✅ You earned {points_awarded} points!"
         else:
+            # Wrong guess, deduct one attempt
             from app.routes import log_wrong_guess
             log_wrong_guess(outlet_id, guessed_name or '', int(guessed_bias or 0), int(guessed_establishment or 0))
             remaining -= 1
             guess_attempts[str(outlet_id)] = remaining
             message = f"❌ Incorrect. {remaining} guesses left."
 
+        # Save updated attempts
         resp = make_response(render_template(
             "guess.html",
             remaining_guesses=remaining,
@@ -171,40 +191,73 @@ def guess(outlet_id):
             outlet_id=outlet_id,
             favicon_url=correct_outlet.favicon_url,
             outlet_name=correct_outlet.name,
-            locked=locked,
-            checkmarks=checkmarks
+            locked={
+                'name': progress.guessed_name_correct or checkmarks['name'],
+                'bias': progress.guessed_bias_correct or checkmarks['bias'],
+                'establishment': progress.guessed_establishment_correct or checkmarks['establishment']
+            },
+            checkmarks=checkmarks,
+            reset_cost=reset_cost
         ))
         save_guess_attempts(resp, guess_attempts)
         return resp
 
+    # ✅ GET request: just show current progress
     return render_template("guess.html",
         remaining_guesses=remaining,
         outlet_id=outlet_id,
         favicon_url=correct_outlet.favicon_url,
         outlet_name=correct_outlet.name,
         locked=locked,
-        checkmarks=checkmarks
+        checkmarks=checkmarks,
+        reset_cost=reset_cost
     )
 
 @main.route('/reset/<int:outlet_id>')
 @login_required
 def reset_guesses(outlet_id):
-    
-
-    
     user_id = current_user.id
 
-    # Decrease user points by 1 for resetting
+    # Fetch user's progress on this outlet
+    progress = db.session.execute(
+        text("""
+            SELECT guessed_name_correct, guessed_bias_correct, guessed_establishment_correct, all_correct_on_first_try
+            FROM user_outlet_progress
+            WHERE user_id = :user_id AND outlet_id = :outlet_id
+        """),
+        {"user_id": user_id, "outlet_id": outlet_id}
+    ).fetchone()
+
+    if not progress:
+        flash("No progress to reset.")
+        return redirect(url_for('main.guess', outlet_id=outlet_id))
+
+    # Calculate how many points were earned
+    points_to_deduct = 0
+    if progress.guessed_name_correct:
+        points_to_deduct += 3
+    if progress.guessed_bias_correct:
+        points_to_deduct += 2
+    if progress.guessed_establishment_correct:
+        points_to_deduct += 2
+    if progress.all_correct_on_first_try:
+        points_to_deduct += 3
+
+    # Deduct the points (but don’t go below 0)
     db.session.execute(
-        text("UPDATE users SET points = GREATEST(points - 1, 0) WHERE id = :user_id"),
-        {"user_id": user_id}
+        text("""
+            UPDATE users
+            SET points = GREATEST(points - :deduct, 0)
+            WHERE id = :user_id
+        """),
+        {"deduct": points_to_deduct, "user_id": user_id}
     )
 
     # Reset guesses in cookie
     guess_attempts = get_guess_attempts()
     guess_attempts[str(outlet_id)] = 5
 
-    # Reset correctness flags for this outlet
+    # Reset progress
     db.session.execute(
         text("""
             UPDATE user_outlet_progress
@@ -221,6 +274,7 @@ def reset_guesses(outlet_id):
 
     resp = make_response(redirect(url_for('main.guess', outlet_id=outlet_id)))
     save_guess_attempts(resp, guess_attempts)
+    flash(f"{points_to_deduct} point(s) removed for resetting this outlet.")
     return resp
 
 
@@ -237,10 +291,8 @@ def favicons():
 @main.route('/submit_article', methods=['POST'])
 @login_required
 def submit_article():
-    
-
-    
     user_id = current_user.id
+    outlet_id = request.form.get("outlet_id")
     url = request.form['url'].strip()
 
     # Check if user has already submitted 5 URLs
@@ -269,15 +321,16 @@ def submit_article():
     )
     db.session.commit()
 
-    # Add 1 guess back to each outlet the user has interacted with
+    # ✅ Only increase guess for the specific outlet
     guess_attempts = get_guess_attempts()
-    for k in guess_attempts:
-        guess_attempts[k] += 1
+    if outlet_id and outlet_id in guess_attempts:
+        guess_attempts[outlet_id] += 1
 
-    flash("Thanks! You’ve earned more guesses.")
-    resp = make_response(redirect(request.referrer or url_for('main.favicons')))
+    flash("✅ You earned 1 extra guess for this outlet!")
+    resp = make_response(redirect(request.referrer or url_for('main.guess', outlet_id=outlet_id)))
     save_guess_attempts(resp, guess_attempts)
     return resp
+
 
 @main.route('/leaderboard')
 def leaderboard():
