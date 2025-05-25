@@ -2,11 +2,39 @@
 <html>
 <head>
     <title>Guess the Favicon</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin: 2rem;
+        }
+        form {
+            display: inline-block;
+            text-align: left;
+            margin: auto;
+        }
+        .locked {
+            background-color: #f0f0f0;
+        }
+        .checkmark {
+            color: green;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .flashes {
+            list-style-type: none;
+            padding: 0;
+            color: red;
+        }
+        img {
+            display: block;
+            margin: 1rem auto;
+        }
+    </style>
 </head>
 <body>
     <h1>Guess the Outlet</h1>
 
-    <!-- Show flashed messages (e.g. from article submission) -->
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <ul class="flashes">
@@ -17,43 +45,62 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Show in-game feedback (e.g. "Wrong guess") -->
     {% if message %}
         <p><strong>{{ message|safe }}</strong></p>
     {% endif %}
 
     <p>You have {{ remaining_guesses }} guesses remaining.</p>
 
-
     {% if favicon_url %}
         <img src="{{ url_for('static', filename='favicons/' ~ favicon_url) }}" alt="Outlet Favicon" style="height: 64px;">
     {% endif %}
 
+    {% set all_locked = locked.name and locked.bias and locked.establishment %}
+    {% if not all_locked and remaining_guesses > 0 %}
     <form method="POST">
-        <!-- Hidden outlet_id -->
         <input type="hidden" name="outlet_id" value="{{ outlet_id }}">
         
         <label>Guessed Name:</label><br>
-        <input type="text" name="guessed_name" required><br><br>
+        <input type="text" name="guessed_name"
+               {% if locked.name %}disabled class="locked"{% endif %}>
+        {% if checkmarks.name %}<span class="checkmark">✅</span>{% endif %}
+        <br><br>
 
-        <label>Guessed Bias (1–5):</label><br>
-        <input type="number" name="guessed_bias" min="1" max="5" required><br><br>
+        <label>Guessed Left/Right Bias (1–5):</label><br>
+        <input type="number" name="guessed_bias" min="1" max="5"
+               {% if locked.bias %}disabled class="locked"{% endif %}>
+        {% if checkmarks.bias %}<span class="checkmark">✅</span>{% endif %}
+        <br><br>
 
-        <label>Guessed Establishment (1–5):</label><br>
-        <input type="number" name="guessed_establishment" min="1" max="5" required><br><br>
+        <label>Guessed Pro/Anti Establishment (1–5):</label><br>
+        <input type="number" name="guessed_establishment" min="1" max="5"
+               {% if locked.establishment %}disabled class="locked"{% endif %}>
+        {% if checkmarks.establishment %}<span class="checkmark">✅</span>{% endif %}
+        <br><br>
 
-        <input type="submit" value="Submit Guess">
+        <input type="submit" value="Submit Guess" style="margin-top: 10px;">
     </form>
+    {% else %}
+        <p><strong>This outlet is locked or you're out of guesses.</strong></p>
+    {% endif %}
 
     <hr>
     <h3>Out of attempts?</h3>
     <p>Submit a unique article URL to earn more guesses:</p>
     <form method="POST" action="{{ url_for('main.submit_article') }}">
         <input type="url" name="url" placeholder="https://example.com/article" required>
+        <br><br>
         <button type="submit">Submit Article</button>
     </form>
 
-    <p><a href="{{ url_for('main.reset_guesses', outlet_id=outlet_id) }}">Reset guesses for this favicon</a></p>
+    <br>
+    <p>
+  <a href="{{ url_for('main.reset_guesses', outlet_id=outlet_id) }}"
+     onclick="return confirm('Resetting will cost 1 point. Are you sure?')">
+     Reset guesses for this favicon
+  </a>
+</p>
+
     <p><a href="{{ url_for('main.index') }}">Back to favicon menu</a></p>
 </body>
 </html>

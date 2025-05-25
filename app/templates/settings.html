@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>⚙️ Settings</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin: 2rem;
+        }
+        form {
+            display: inline-block;
+            margin-top: 2rem;
+        }
+        label {
+            font-size: 1.1rem;
+        }
+        button {
+            margin-top: 10px;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #000;
+        }
+        .back-link {
+            display: block;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚙️ Settings</h1>
+    <form method="POST">
+        <label>
+            <input type="checkbox" name="show_leaderboard" {% if current_show %}checked{% endif %}>
+            Show my username and score on the leaderboard
+        </label>
+        <br>
+        <button type="submit">Save Settings</button>
+    </form>
+    <a href="{{ url_for('main.index') }}" class="back-link">← Back to game</a>
+</body>
+</html>

@@ -56,3 +56,15 @@ CREATE TABLE wrong_guesses (
     count INTEGER DEFAULT 1,
     UNIQUE (outlet_id, guessed_name, guessed_bias, guessed_establishment)
 );
+
+-- Tracks what parts of an outlet a user has already guessed correctly
+CREATE TABLE user_outlet_progress (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    outlet_id INTEGER REFERENCES outlets(id) ON DELETE CASCADE,
+    guessed_name_correct BOOLEAN DEFAULT FALSE,
+    guessed_bias_correct BOOLEAN DEFAULT FALSE,
+    guessed_establishment_correct BOOLEAN DEFAULT FALSE,
+    all_correct_on_first_try BOOLEAN DEFAULT FALSE,
+    UNIQUE (user_id, outlet_id)
+);
