@@ -52,9 +52,9 @@ def log_wrong_guess(outlet_id, guessed_name, guessed_bias, guessed_establishment
     return result.fetchone().count
 
 @main.route('/guess/<int:outlet_id>', methods=['GET', 'POST'])
+@login_required
 def guess(outlet_id):
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+    user_id = current_user.id
 
     user_id = current_user.id
     MAX_ATTEMPTS = 5
@@ -187,9 +187,9 @@ def guess(outlet_id):
     )
 
 @main.route('/reset/<int:outlet_id>')
+@login_required
 def reset_guesses(outlet_id):
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+    
 
     
     user_id = current_user.id
@@ -225,6 +225,7 @@ def reset_guesses(outlet_id):
 
 
 @main.route("/favicons")
+@login_required
 def favicons():
     from app.models import Outlet  # Make sure this import exists if needed
     outlets = Outlet.query.all()
@@ -234,10 +235,9 @@ def favicons():
 
 
 @main.route('/submit_article', methods=['POST'])
+@login_required
 def submit_article():
-    if 'user_id' not in session:
-        flash("You must be logged in to submit an article.")
-        return redirect(url_for('auth.login'))
+    
 
     
     user_id = current_user.id
