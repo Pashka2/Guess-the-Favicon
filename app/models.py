@@ -53,5 +53,6 @@ class Submission(db.Model):
     __tablename__ = 'submissions'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)
+    outlet_id = db.Column(db.Integer, nullable=False)  
     url = db.Column(db.String, nullable=False)
     status = db.Column(db.String, default='pending')

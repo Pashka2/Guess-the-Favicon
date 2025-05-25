@@ -288,45 +288,53 @@ def favicons():
 
 
 
-@main.route('/submit_article', methods=['POST'])
+@main.route('/submit_article/<int:outlet_id>', methods=['POST'])
 @login_required
-def submit_article():
+def submit_article(outlet_id):
     user_id = current_user.id
-    outlet_id = request.form.get("outlet_id")
     url = request.form['url'].strip()
 
-    # Check if user has already submitted 5 URLs
+    # Limit submissions per outlet
     submission_count = db.session.execute(
-        text("SELECT COUNT(*) FROM submissions WHERE user_id = :user_id"),
-        {"user_id": user_id}
+        text("""
+            SELECT COUNT(*) FROM submissions 
+            WHERE user_id = :user_id AND outlet_id = :outlet_id
+        """),
+        {"user_id": user_id, "outlet_id": outlet_id}
     ).scalar()
 
-    if submission_count >= 5:
-        flash("You’ve reached the limit of 5 article submissions.")
-        return redirect(request.referrer or url_for('main.favicons'))
+    if submission_count >= 3:  # or whatever limit you want
+        flash("You’ve reached the article submission limit for this outlet.")
+        return redirect(request.referrer or url_for('main.guess', outlet_id=outlet_id))
 
-    # Check if this URL has already been submitted
+    # Check if this exact URL was submitted
     exists = db.session.execute(
-        text("SELECT id FROM submissions WHERE url = :url"), {"url": url}
+        text("""
+            SELECT id FROM submissions 
+            WHERE user_id = :user_id AND outlet_id = :outlet_id AND url = :url
+        """),
+        {"user_id": user_id, "outlet_id": outlet_id, "url": url}
     ).fetchone()
 
     if exists:
         flash("This URL has already been submitted.")
-        return redirect(request.referrer or url_for('main.favicons'))
+        return redirect(request.referrer or url_for('main.guess', outlet_id=outlet_id))
 
-    # Insert the new submission
+    # Save the submission
     db.session.execute(
-        text("INSERT INTO submissions (user_id, url, status) VALUES (:user_id, :url, 'pending')"),
-        {"user_id": user_id, "url": url}
+        text("""
+            INSERT INTO submissions (user_id, outlet_id, url, status) 
+            VALUES (:user_id, :outlet_id, :url, 'pending')
+        """),
+        {"user_id": user_id, "outlet_id": outlet_id, "url": url}
     )
     db.session.commit()
 
-    # ✅ Only increase guess for the specific outlet
+    # Grant 1 guess point back for this outlet only
     guess_attempts = get_guess_attempts()
-    if outlet_id and outlet_id in guess_attempts:
-        guess_attempts[outlet_id] += 1
+    guess_attempts[str(outlet_id)] = guess_attempts.get(str(outlet_id), 0) + 1
 
-    flash("✅ You earned 1 extra guess for this outlet!")
+    flash("Thanks! You earned 1 guess for this outlet.")
     resp = make_response(redirect(request.referrer or url_for('main.guess', outlet_id=outlet_id)))
     save_guess_attempts(resp, guess_attempts)
     return resp

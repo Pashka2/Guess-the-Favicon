@@ -8,9 +8,25 @@
             text-align: center;
             padding-top: 100px;
         }
+
+        .logo-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4rem;
+            margin: 2rem 0;
+        }
+
+        .logo-row img {
+            height: 100px;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
         .button-group {
             margin-top: 40px;
         }
+
         .button-group a {
             text-decoration: none;
             padding: 12px 24px;
@@ -20,6 +36,7 @@
             border-radius: 8px;
             background-color: white;
         }
+
         .button-group a:hover {
             background-color: black;
             color: white;
@@ -29,6 +46,12 @@
 <body>
     <h1>Welcome to the Media Outlet Guesser</h1>
     <p>Please register an account and/or login to begin play</p>
+
+    <div class="logo-row">
+        <img src="{{ url_for('static', filename='miscellaneous/itn.png') }}" alt="Improve the News Logo">
+        <img src="{{ url_for('static', filename='miscellaneous/verity.png') }}" alt="Verity Logo">
+    </div>
+
     <div class="button-group">
         <a href="{{ url_for('auth.login') }}">Login</a>
         <a href="{{ url_for('auth.register') }}">Register</a>
