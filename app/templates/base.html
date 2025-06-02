@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}My Game{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% block content %}{% endblock %}
+
+<div id="astronaut-ui" class="floating-mode">
+  <img id="astronaut" src="{{ url_for('static', filename='astronaut/idle.png') }}" alt="Astronaut" />
+  <div id="chat-box" class="hidden">
+    <div id="chat-log"></div>
+    <input type="text" id="chat-input" placeholder="Ask me something...">
+  </div>
+</div>
+
+<button id="toggle-mode">🧲 Toggle Mode</button>
+
+
+
+  <script>
+  const astronautUI = document.getElementById('astronaut-ui');
+  const astronaut = document.getElementById('astronaut');
+  const chatBox = document.getElementById('chat-box');
+  const chatInput = document.getElementById('chat-input');
+  const chatLog = document.getElementById('chat-log');
+  const toggleBtn = document.getElementById('toggle-mode');
+
+  let mode = 'floating';
+
+  toggleBtn.addEventListener('click', () => {
+    if (mode === 'floating') {
+      astronautUI.classList.remove('floating-mode');
+      astronautUI.classList.add('standstill-mode');
+      chatBox.classList.remove('hidden');
+      chatBox.classList.add('visible');
+      mode = 'standstill';
+    } else {
+      astronautUI.classList.remove('standstill-mode');
+      astronautUI.classList.add('floating-mode');
+      chatBox.classList.remove('visible');
+      chatBox.classList.add('hidden');
+      mode = 'floating';
+    }
+  });
+
+  // Emote animation logic
+  setInterval(() => {
+    if (mode === 'floating') {
+      setAstronautEmote('scared');
+      setTimeout(() => setAstronautEmote('idle'), 1000);
+    }
+  }, 10000);
+
+  function setAstronautEmote(emote) {
+    astronaut.src = `/static/astronaut/${emote}.png`;
+  }
+
+  chatInput?.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      const msg = chatInput.value.trim();
+      if (msg) {
+        chatLog.innerHTML += `<p><strong>You:</strong> ${msg}</p>`;
+        chatLog.innerHTML += `<p><strong>Astronaut:</strong> I'm still learning...</p>`;
+        chatInput.value = '';
+      }
+    }
+  });
+</script>
+</body>
+</html>

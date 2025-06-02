@@ -1,3 +1,6 @@
+{% extends "base.html" %}
+
+{% block content %}
 <h1>Pick a favicon to guess!</h1>
 <div style="display: flex; flex-wrap: wrap;">
   {% for outlet in outlets %}
@@ -9,3 +12,4 @@
     </div>
   {% endfor %}
 </div>
+{% endblock %}
