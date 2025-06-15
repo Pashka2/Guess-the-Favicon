@@ -4,13 +4,10 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from config import Config
 
-from yourproject.chat_routes import chat
-app.register_blueprint(chat)
-
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-login_manager.login_view = 'auth.login'  # Redirect here if not logged in
+login_manager.login_view = 'auth.login'
 
 def create_app():
     app = Flask(__name__)
@@ -20,12 +17,13 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
-    from app.models import User  # ⬅️ Needed for user_loader
+    from app.models import User
 
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # ⬇️ Import *routes* only AFTER app, db are fully defined
     from app.routes import main as main_blueprint
     from app.auth import auth as auth_blueprint
 

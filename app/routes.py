@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, make_response, flash, request, session, jsonify
 from sqlalchemy import text
-from app import db 
+from . import db 
 from flask_login import login_required, current_user
 from app.utils import get_guess_attempts, save_guess_attempts
 from app.models import User
