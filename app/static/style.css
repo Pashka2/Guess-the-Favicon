@@ -1,10 +1,11 @@
+/* ------------------ Global Styles ------------------ */
 body {
   font-family: sans-serif;
   text-align: center;
   padding-top: 100px;
 }
 
-/* Layout styles */
+/* ------------------ Logo Row Layout ------------------ */
 .logo-row {
   display: flex;
   justify-content: center;
@@ -19,6 +20,7 @@ body {
   object-fit: contain;
 }
 
+/* ------------------ Button Group ------------------ */
 .button-group {
   margin-top: 40px;
 }
@@ -38,31 +40,33 @@ body {
   color: white;
 }
 
-/* Astronaut Emote */
+/* ------------------ Astronaut Image ------------------ */
 #astronaut {
   width: 80px;
   transition: transform 0.3s;
-  z-index: 1001;
+  pointer-events: none; /* Don't block clicks */
 }
 
-/* Floating Mode */
+/* ------------------ Floating Mode ------------------ */
 #astronaut-ui.floating-mode {
   position: absolute;
-  top: 20%;
+  top: 10%;
   left: 5%;
   animation: drift 30s linear infinite;
+  z-index: 1; /* low value so it's below toggle button */
 }
 
-/* Floating keyframes */
+
+/* Floating animation path */
 @keyframes drift {
   0%   { top: 10%; left: 5%; transform: translate(0, 0); }
-  25%  { top: 20%; left: 80%; transform: translate(-10px, 10px); }
-  50%  { top: 70%; left: 40%; transform: translate(10px, -10px); }
-  75%  { top: 30%; left: 60%; transform: translate(-5px, 5px); }
+  25%  { top: 20%; left: 60%; transform: translate(-10px, 10px); }
+  50%  { top: 50%; left: 20%; transform: translate(10px, -10px); }
+  75%  { top: 30%; left: 70%; transform: translate(-5px, 5px); }
   100% { top: 10%; left: 5%; transform: translate(0, 0); }
 }
 
-/* Standstill Mode: astronaut + chat UI */
+/* ------------------ Standstill Mode ------------------ */
 #astronaut-ui.standstill-mode {
   position: fixed;
   bottom: 80px;
@@ -72,16 +76,20 @@ body {
   align-items: center;
   animation: none;
   gap: 8px;
+  z-index: 9999;
+  pointer-events: auto;
 }
 
-/* Chat box */
+/* ------------------ Chat Box ------------------ */
 #chat-box {
-  display: none;
+  max-height: 250px;
+  width: 220px;
+  padding: 10px;
   background: white;
   border: 1px solid #ccc;
   border-radius: 8px;
-  padding: 10px;
-  width: 220px;
+  overflow-y: auto;
+  display: none;
 }
 
 #chat-box.hidden {
@@ -92,7 +100,7 @@ body {
   display: block;
 }
 
-/* Toggle Mode Button — always fixed bottom-right */
+/* ------------------ Toggle Button ------------------ */
 #toggle-mode {
   position: fixed;
   bottom: 10px;
@@ -105,4 +113,11 @@ body {
   padding: 5px 8px;
   border-radius: 6px;
   cursor: pointer;
+  pointer-events: auto;
+}
+
+
+/* Fix any layout element accidentally blocking it */
+body *:not(#toggle-mode):not(#astronaut-ui):not(#chat-box) {
+  pointer-events: auto !important;
 }

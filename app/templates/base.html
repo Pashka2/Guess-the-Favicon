@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  {% block content %}{% endblock %}
+  
 
 <div id="astronaut-ui" class="floating-mode">
   <img id="astronaut" src="{{ url_for('static', filename='astronaut/idle.png') }}" alt="Astronaut" />
@@ -18,9 +18,9 @@
 
 <button id="toggle-mode">🧲 Toggle Mode</button>
 
+{% block content %}{% endblock %}
 
-
-  <script>
+<script>
   const astronautUI = document.getElementById('astronaut-ui');
   const astronaut = document.getElementById('astronaut');
   const chatBox = document.getElementById('chat-box');
@@ -28,7 +28,17 @@
   const chatLog = document.getElementById('chat-log');
   const toggleBtn = document.getElementById('toggle-mode');
 
+  const pageContext = "{{ request.endpoint }}"; // Flask injects current route
+
   let mode = 'floating';
+
+  // Restore chat history on load
+  window.addEventListener('load', () => {
+    const savedChat = localStorage.getItem('chatLog');
+    if (savedChat) {
+      chatLog.innerHTML = savedChat;
+    }
+  });
 
   toggleBtn.addEventListener('click', () => {
     if (mode === 'floating') {
@@ -46,7 +56,6 @@
     }
   });
 
-  // Emote animation logic
   setInterval(() => {
     if (mode === 'floating') {
       setAstronautEmote('scared');
@@ -58,13 +67,52 @@
     astronaut.src = `/static/astronaut/${emote}.png`;
   }
 
+  function getPromptContext() {
+  switch (pageContext) {
+    case 'main.guess':
+      return "You are helping a player guess a news outlet’s name, political bias (left/right), and establishment stance. Do not give away the answer directly. Each time the player asks for help, deduct points from them — start with 1 point for the first hint, then gradually increase the cost for each additional hint. If the player runs out of points, politely refuse to help further. If the player guesses incorrectly for the first time, proactively offer help — but still charge for it.";
+    case 'main.index':
+      return "You are welcoming the player to the main dashboard of a media literacy guessing game. Encourage them to click a favicon to start guessing.";
+    case 'auth.login':
+      return "You are helping a user log in to begin playing a media literacy game. If they don’t have an account, suggest they register.";
+    case 'auth.register':
+      return "You are helping a new user register for the game. Be friendly and brief. Mention they’ll be able to track their score and earn points.";
+    case 'main.settings':
+      return "You are explaining the leaderboard visibility setting. Help the user understand whether they want to be publicly ranked.";
+    case 'main.leaderboard':
+      return "You are describing what the leaderboard represents — a ranking of players based on the points they’ve earned in the game.";
+    case 'auth.welcome':
+      return "You are the game’s mascot greeting a new visitor. Explain that this is a media literacy game where users guess news outlet bias, and that they should log in or register to start playing.";
+    default:
+      return "You are an astronaut assistant helping a player in a media literacy guessing game. Offer help based on the page they’re on.";
+  }
+}
+
   chatInput?.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
       const msg = chatInput.value.trim();
       if (msg) {
         chatLog.innerHTML += `<p><strong>You:</strong> ${msg}</p>`;
-        chatLog.innerHTML += `<p><strong>Astronaut:</strong> I'm still learning...</p>`;
         chatInput.value = '';
+
+        const fullPrompt = getPromptContext() + "\n\nUser: " + msg;
+
+        fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: msg,
+            context: '{{ request.endpoint }}',
+            outlet_id: "{{ outlet_id if outlet_id is defined else '' }}"
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          const reply = data.reply || '🤖 Hmm... I had trouble responding.';
+          chatLog.innerHTML += `<p><strong>Astronaut:</strong> ${reply}</p>`;
+          localStorage.setItem('chatLog', chatLog.innerHTML);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        });
       }
     }
   });

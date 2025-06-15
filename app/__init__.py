@@ -4,6 +4,9 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from config import Config
 
+from yourproject.chat_routes import chat
+app.register_blueprint(chat)
+
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()

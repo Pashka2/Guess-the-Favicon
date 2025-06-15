@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, make_response, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, make_response, flash, request, session, jsonify
 from sqlalchemy import text
 from app import db 
 from flask_login import login_required, current_user
 from app.utils import get_guess_attempts, save_guess_attempts
 from app.models import User
+import requests
 
 #import json
 
@@ -365,4 +366,63 @@ def settings():
         return redirect(url_for('main.index'))
 
     return render_template("settings.html", current_show=user.show_on_leaderboard)
+
+
+@main.route('/chat', methods=['POST'])
+@login_required
+def chat_with_deepseek():
+    user_input = request.json.get('message')
+    page_context = request.json.get('context')  # pageContext sent from JS
+    outlet_id = request.json.get('outlet_id')
+
+    if not user_input:
+        return jsonify({'error': 'No message received'}), 400
+
+    # Default to no deduction
+    hint_cost = 0
+
+    # 🧠 Guess Page Logic
+    if page_context == 'main.guess' and outlet_id:
+        progress = db.session.execute(text("""
+            SELECT hints_used FROM user_outlet_progress 
+            WHERE user_id = :user_id AND outlet_id = :outlet_id
+        """), {"user_id": current_user.id, "outlet_id": outlet_id}).fetchone()
+
+        if progress:
+            hint_cost = progress.hints_used + 1  # First hint is 1, then 2, etc.
+
+            # Check user points
+            current_points = db.session.execute(text("""
+                SELECT points FROM users WHERE id = :id
+            """), {"id": current_user.id}).scalar()
+
+            if current_points < hint_cost:
+                return jsonify({'reply': f"🚫 You don’t have enough points to get a hint. You need {hint_cost}, but only have {current_points}."})
+
+            # Deduct points and increment hints
+            db.session.execute(text("""
+                UPDATE users SET points = points - :cost WHERE id = :id
+            """), {"cost": hint_cost, "id": current_user.id})
+
+            db.session.execute(text("""
+                UPDATE user_outlet_progress SET hints_used = hints_used + 1
+                WHERE user_id = :user_id AND outlet_id = :outlet_id
+            """), {"user_id": current_user.id, "outlet_id": outlet_id})
+
+            db.session.commit()
+
+    # 🔌 Call DeepSeek
+    try:
+        response = requests.post(
+            'http://localhost:11434/api/generate',
+            json={
+                "model": "deepseek-r1:8b",
+                "prompt": user_input,
+                "stream": False
+            }
+        )
+        data = response.json()
+        return jsonify({'reply': data.get('response', 'No response')})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     
