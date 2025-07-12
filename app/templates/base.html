@@ -28,8 +28,9 @@
   const chatLog = document.getElementById('chat-log');
   const toggleBtn = document.getElementById('toggle-mode');
 
-  const pageContext = "{{ request.endpoint }}"; // Flask injects current route
-
+  const pageContext = "{{ request.endpoint | default('main.index') }}";
+  console.log("Detected pageContext:", pageContext);
+  
   let mode = 'floating';
 
   // Restore chat history on load
